@@ -60,11 +60,13 @@ CREATE TABLE IF NOT EXISTS messages (
 ## Troubleshooting
 
 If you encounter WebSocket connection errors like:
-```
+
+```bash
 WebSocketError: WebSocket HTTP error: Invalid HTTP version specified
 ```
 
 Try these solutions:
+
 1. Check your internet connection
 2. Ensure you're not behind a restrictive proxy or firewall
 3. Set more detailed logging with `RUST_LOG=debug,whatsandra=trace cargo run`
