@@ -1,0 +1,30 @@
+# Generated files
+/target/
+Cargo.lock
+
+# WhatsApp store directory
+/whatsapp_store/
+
+# Environment variables
+.env
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Debug files
+debug/
+**/*.rs.bk
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific
+.DS_Store
+Thumbs.db

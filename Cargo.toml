@@ -1,0 +1,11 @@
+[package]
+name = "whatsandra-implementation"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+whatsandra = { git = "https://github.com/w33ladalah/whatsandra" }
+tokio = { version = "1", features = ["full"] }
+dotenv = "0.15.0"
+env_logger = "0.10.0"
+rusqlite = { version = "0.29.0", features = ["bundled"] }
