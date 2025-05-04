@@ -37,7 +37,7 @@ async fn main() -> Result<(), AppError> {
     env_logger::init();
 
     // Initialize storage
-    let storage = SQLiteStorage::new()?;
+    let mut storage = SQLiteStorage::new()?;
     storage.connect().await?;
     println!("✅ SQLite storage initialized");
 

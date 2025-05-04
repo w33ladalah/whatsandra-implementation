@@ -3,6 +3,8 @@ use std::error::Error;
 use std::fmt;
 use std::env;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+use rusqlite::Connection;
 
 #[derive(Debug)]
 pub enum StorageError {
@@ -21,8 +23,10 @@ impl Error for StorageError {}
 
 #[derive(Clone)]
 pub struct SQLiteStorage {
-    // In a real implementation, you would have a connection to SQLite here
     db_path: PathBuf,
+    // Using Arc<Mutex<>> to make the connection shareable across threads
+    // In a real app, consider using a connection pool
+    connection: Option<Arc<Mutex<Connection>>>,
 }
 
 impl SQLiteStorage {
@@ -37,48 +41,71 @@ impl SQLiteStorage {
 
         Ok(Self {
             db_path: PathBuf::from(db_path),
+            connection: None,
         })
     }
 
-    pub async fn connect(&self) -> Result<(), StorageError> {
-        // In a real implementation, this would connect to SQLite
+    pub async fn connect(&mut self) -> Result<(), StorageError> {
         println!("Connecting to SQLite database at: {}", self.db_path.display());
 
-        // Example of actual connection code:
-        // let conn = rusqlite::Connection::open(&self.db_path)
-        //     .map_err(|e| StorageError::DatabaseError(e.to_string()))?;
-        //
-        // conn.execute(
-        //     "CREATE TABLE IF NOT EXISTS messages (
-        //         id TEXT PRIMARY KEY,
-        //         text TEXT,
-        //         media_url TEXT,
-        //         timestamp TEXT
-        //     )",
-        //     [],
-        // ).map_err(|e| StorageError::DatabaseError(e.to_string()))?;
+        // Open the database connection
+        let conn = Connection::open(&self.db_path)
+            .map_err(|e| StorageError::DatabaseError(format!("Failed to open database: {}", e)))?;
+
+        // Create the messages table if it doesn't exist
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS messages (
+                id TEXT PRIMARY KEY,
+                from_me INTEGER,
+                timestamp TEXT,
+                message_type TEXT,
+                chat_jid TEXT,
+                text TEXT
+            )",
+            [],
+        ).map_err(|e| StorageError::DatabaseError(format!("Failed to create table: {}", e)))?;
+
+        // Store the connection
+        self.connection = Some(Arc::new(Mutex::new(conn)));
+        println!("✅ Successfully connected to SQLite database");
 
         Ok(())
     }
 
     pub async fn store_message(&self, msg: &Message) -> Result<(), StorageError> {
-        // In a real implementation, this would store the message in SQLite
         let text = msg.text.as_deref().unwrap_or("[No text]");
         println!("Storing message in SQLite: {}", text);
 
-        // Example of actual storage code:
-        // let conn = rusqlite::Connection::open(&self.db_path)
-        //     .map_err(|e| StorageError::DatabaseError(e.to_string()))?;
-        //
-        // conn.execute(
-        //     "INSERT INTO messages (id, text, timestamp) VALUES (?1, ?2, ?3)",
-        //     [
-        //         &uuid::Uuid::new_v4().to_string(),
-        //         text,
-        //         &chrono::Utc::now().to_rfc3339(),
-        //     ],
-        // ).map_err(|e| StorageError::DatabaseError(e.to_string()))?;
+        // Get the connection
+        let conn = match &self.connection {
+            Some(conn) => conn.clone(),
+            None => return Err(StorageError::DatabaseError("Database not connected".to_string())),
+        };
 
+        // Lock the connection and execute the query
+        let conn = conn.lock().map_err(|e|
+            StorageError::DatabaseError(format!("Failed to lock connection: {}", e)))?;
+
+        // Convert message type to a string for storage
+        let message_type = format!("{:?}", msg.message_type);
+
+        // Convert chat_jid to string
+        let chat_jid = msg.chat_jid.to_string();
+
+        conn.execute(
+            "INSERT INTO messages (id, from_me, timestamp, message_type, chat_jid, text)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            rusqlite::params![
+                msg.id,
+                msg.from_me as i32,
+                msg.timestamp.to_string(),
+                message_type,
+                chat_jid,
+                text,
+            ],
+        ).map_err(|e| StorageError::DatabaseError(format!("Failed to insert message: {}", e)))?;
+
+        println!("✅ Message successfully stored in SQLite database");
         Ok(())
     }
 }

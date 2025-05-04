@@ -13,7 +13,8 @@ This project demonstrates how to use the WhatsAndra Rust library to create a Wha
 2. Create a `.env` file in the root directory (optional)
 
 Example `.env` file:
-```
+
+```dotenv
 # SQLite Configuration
 SQLITE_DB_PATH=whatsapp_messages.db
 
@@ -34,20 +35,39 @@ When you first run the application, it will generate a QR code. Scan this with y
 
 - Connect to WhatsApp using QR code authentication
 - Receive and display messages
-- Ready for integration with SQLite for message storage
+- Store received messages in SQLite database
 
 ## Project Structure
 
 - `src/main.rs` - Main application entry point
-- `src/storage.rs` - SQLite storage module (skeleton implementation)
+- `src/storage.rs` - SQLite storage module
 
-## Extending the Application
+## Database Schema
 
-To add full SQLite storage functionality:
+The application creates an SQLite database with the following schema:
 
-1. Implement the actual connection logic in `SQLiteStorage::connect()`
-2. Implement the message storage logic in `SQLiteStorage::store_message()`
-3. Uncomment the code in the `MessageReceived` event handler in `main.rs`
+```sql
+CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
+    from_me INTEGER,
+    timestamp TEXT,
+    message_type TEXT,
+    chat_jid TEXT,
+    text TEXT
+);
+```
+
+## Troubleshooting
+
+If you encounter WebSocket connection errors like:
+```
+WebSocketError: WebSocket HTTP error: Invalid HTTP version specified
+```
+
+Try these solutions:
+1. Check your internet connection
+2. Ensure you're not behind a restrictive proxy or firewall
+3. Set more detailed logging with `RUST_LOG=debug,whatsandra=trace cargo run`
 
 ## License
 
